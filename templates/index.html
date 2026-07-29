@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Roster - Paradise Valley Baseball{% endblock %}
+{% block content %}
+  <div class="page-title">
+    <h2>Roster</h2>
+    <div>
+      <a class="btn secondary" href="{{ url_for('upload_csv') }}">Import Stats CSV</a>
+      <a class="btn secondary" href="{{ url_for('upload_video') }}">Add Video</a>
+      <a class="btn" href="{{ url_for('add_player') }}">+ Add Player</a>
+    </div>
+  </div>
+
+  {% if players %}
+    <div class="roster-grid">
+      {% for p in players %}
+        <a class="player-card" href="{{ url_for('player_detail', player_id=p['id']) }}">
+          {% if p['photo_filename'] %}
+            <img class="avatar" src="{{ url_for('static', filename='uploads/photos/' ~ p['photo_filename']) }}" alt="{{ p['name'] }}">
+          {% else %}
+            <div class="avatar">{{ p['name'][:2] | upper }}</div>
+          {% endif %}
+          <h3>{{ p['name'] }}{% if p['jersey_number'] %} <span style="color:#a0322e;">#{{ p['jersey_number'] }}</span>{% endif %}</h3>
+          <div class="meta">
+            {{ p['position'] or 'Position not set' }}{% if p['grad_year'] %} &middot; Class of {{ p['grad_year'] }}{% endif %}
+            {% if p['group_number'] %}&middot; Group {{ p['group_number'] }}{% endif %}
+          </div>
+          <div class="counts">
+            <span>{{ p['stat_count'] }} stat entries</span>
+            <span>{{ p['video_count'] }} videos</span>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <p>No players yet. Add your first player to start tracking progress.</p>
+      <a class="btn" href="{{ url_for('add_player') }}">+ Add Player</a>
+    </div>
+  {% endif %}
+{% endblock %}

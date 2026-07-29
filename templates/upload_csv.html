@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Import Stats - Paradise Valley Baseball{% endblock %}
+{% block content %}
+  <div class="page-title"><h2>Import Stats CSV</h2></div>
+
+  {% if not players %}
+    <div class="empty-state">
+      <p>Add players to your roster first, so CSV rows can be matched by name.</p>
+      <a class="btn" href="{{ url_for('add_player') }}">+ Add Player</a>
+    </div>
+  {% else %}
+  <form class="card-form" method="POST" enctype="multipart/form-data">
+    <div class="field">
+      <label for="csv_file">CSV File *</label>
+      <input type="file" id="csv_file" name="csv_file" accept=".csv" required>
+      <div class="hint">
+        Must include a <strong>Player</strong> (or <strong>Name</strong>) column matching a roster name,
+        and ideally a <strong>Date</strong> column. Every other numeric column (ERA, K, BB, pitch count, velo per pitch, drill score, etc.)
+        gets tracked automatically. Blank cells, or cells that say NULL/N/A/-/none, are just skipped.
+      </div>
+    </div>
+    <div class="field">
+      <label for="category">Session type</label>
+      <select id="category" name="category" onchange="document.getElementById('category-other-wrap').style.display = this.value === 'Other' ? 'block' : 'none';">
+        {% for opt in category_options %}
+          <option value="{{ opt }}" {% if opt == 'Bullpen' %}selected{% endif %}>{{ opt }}</option>
+        {% endfor %}
+      </select>
+      <div class="hint">Used to group these stats on the player page &mdash; e.g. Bullpen and Pulldown sessions stay separate from Game stats.</div>
+    </div>
+    <div class="field" id="category-other-wrap" style="display:none;">
+      <label for="category_other">Custom session type</label>
+      <input type="text" id="category_other" name="category_other" placeholder="e.g. Weighted Ball, Long Toss">
+    </div>
+    <button class="btn" type="submit">Upload &amp; Import</button>
+  </form>
+
+  <div class="section-title">Strike % and pitch velo columns</div>
+  <p style="color:#6b6564; font-size:0.9rem;">
+    Include <strong>Strikes</strong> and <strong>Pitches</strong> (or "Total Pitches") columns and Strike % is calculated for you automatically &mdash;
+    no need to compute it yourself. For velo, add one column per pitch thrown; any of these column names are recognized as a pitch (feel free to use just the ones a pitcher actually throws):
+  </p>
+  <table class="csv-preview">
+    <thead><tr><th>Pitch</th><th>Suggested column name</th></tr></thead>
+    <tbody>
+      {% for abbr, full in pitch_types %}
+        <tr><td>{{ full }}</td><td>{{ abbr }} Velo</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p style="color:#6b6564; font-size:0.85rem;">
+    Sample files for a game outing, a bullpen (with Strikes/Pitches and per-pitch velo), and a pulldown session are in <code>sample_data/</code>.
+  </p>
+
+  <div class="section-title">Roster names (must match your CSV exactly, case-insensitive)</div>
+  <table class="csv-preview">
+    <thead><tr><th>Name</th></tr></thead>
+    <tbody>
+      {% for p in players %}<tr><td>{{ p['name'] }}</td></tr>{% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+{% endblock %}

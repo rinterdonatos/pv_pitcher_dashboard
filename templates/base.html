@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Paradise Valley Baseball{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="icon" href="{{ url_for('static', filename='img/pv-logo.png') }}">
+</head>
+<body>
+  <header class="site-header">
+    <img class="logo" src="{{ url_for('static', filename='img/pv-logo.png') }}" alt="Paradise Valley logo">
+    <div class="brand">
+      <h1>Paradise Valley Baseball</h1>
+      <span>Player Progress Tracker</span>
+    </div>
+    <nav>
+      <a href="{{ url_for('index') }}">Roster</a>
+      <a href="{{ url_for('groups_list') }}">Throwing Calendars</a>
+      <a href="{{ url_for('leaderboard') }}">Leaderboard</a>
+      <a href="{{ url_for('upload_csv') }}">Import Stats</a>
+      <a href="{{ url_for('upload_video') }}">Add Video</a>
+      <a href="{{ url_for('add_player') }}">Add Player</a>
+      <a href="{{ url_for('manage_uploads') }}">Manage Uploads</a>
+      <form method="POST" action="{{ url_for('logout') }}" style="display:inline;">
+        <button type="submit" class="nav-logout">Log Out</button>
+      </form>
+    </nav>
+  </header>
+  <main>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="flash {{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

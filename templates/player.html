@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+{% block title %}{{ player['name'] }} - Paradise Valley Baseball{% endblock %}
+{% block content %}
+  <div class="page-title">
+    <div class="player-header" style="margin-bottom:0;">
+      {% if player['photo_filename'] %}
+        <img class="avatar-lg" src="{{ url_for('static', filename='uploads/photos/' ~ player['photo_filename']) }}" alt="{{ player['name'] }}">
+      {% else %}
+        <div class="avatar-lg">{{ player['name'][:2] | upper }}</div>
+      {% endif %}
+      <div>
+        <h2 style="margin:0;">{{ player['name'] }}{% if player['jersey_number'] %} #{{ player['jersey_number'] }}{% endif %}</h2>
+        <div class="meta">
+          {{ player['position'] or 'Position not set' }}{% if player['grad_year'] %} &middot; Class of {{ player['grad_year'] }}{% endif %}
+          {% if player['group_number'] %} &middot; <a href="{{ url_for('group_calendar', group_number=player['group_number']) }}">Group {{ player['group_number'] }} calendar</a>{% endif %}
+        </div>
+      </div>
+    </div>
+    <div>
+      <a class="btn secondary" href="{{ url_for('edit_player', player_id=player['id']) }}">Edit Info</a>
+      <a class="btn secondary" href="{{ url_for('upload_video') }}">+ Add Video</a>
+      <a class="btn secondary" href="{{ url_for('upload_csv') }}">+ Import Stats</a>
+      <form method="POST" action="{{ url_for('delete_player', player_id=player['id']) }}" style="display:inline;" onsubmit="return confirm('Remove {{ player['name'] }} and all their data?');">
+        <button class="btn danger" type="submit">Remove Player</button>
+      </form>
+    </div>
+  </div>
+
+  {% if player['notes'] %}
+    <p style="color:#6b6564;">{{ player['notes'] }}</p>
+  {% endif %}
+
+  <div class="section-title">Progress Over Time</div>
+  {% if category_tables %}
+    {% if velocity_by_stat %}
+      <div class="stat-grid" id="velocity-grid">
+        {% for stat_name in velocity_by_stat.keys() | sort %}
+          <div class="stat-card">
+            <h4>{{ stat_name }}</h4>
+            <canvas data-stat="{{ stat_name }}" height="110"></canvas>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% for table in category_tables %}
+      <h3 class="spreadsheet-title">{{ table.category }}</h3>
+      <div class="spreadsheet-wrap">
+        <table class="spreadsheet-table">
+          <thead>
+            <tr>
+              <th class="spreadsheet-date-col">Date</th>
+              {% for sn in table.stat_names %}<th>{{ sn }}</th>{% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in table.rows %}
+              <tr>
+                <td class="spreadsheet-date-col">{{ row['date'] }}</td>
+                {% for v in row['values'] %}<td>{{ v if v is not none else '' }}</td>{% endfor %}
+              </tr>
+            {% endfor %}
+            <tr class="avg-row">
+              <td class="spreadsheet-date-col">AVG</td>
+              {% for a in table.averages %}<td>{{ a if a is not none else '' }}</td>{% endfor %}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="empty-state">
+      <p>No stats yet. Import a CSV to start tracking {{ player['name'] }}'s progress.</p>
+      <a class="btn" href="{{ url_for('upload_csv') }}">Import Stats CSV</a>
+    </div>
+  {% endif %}
+
+  <div class="section-title">Video Timeline</div>
+  {% if videos %}
+    <div class="video-list">
+      {% for v in videos %}
+        <div class="video-item" id="video-{{ v['id'] }}">
+          <video controls preload="metadata" src="{{ url_for('static', filename='uploads/videos/' ~ v['filename']) }}"></video>
+          <div class="info">
+            <span class="date-tag">{{ v['entry_date'] }}</span>
+            <h4>{{ v['title'] }}{% if v['category'] %} <span style="color:#6b6564; font-weight:400;">&middot; {{ v['category'] }}</span>{% endif %}</h4>
+            {% if v['notes'] %}<p>{{ v['notes'] }}</p>{% endif %}
+            <form method="POST" action="{{ url_for('delete_video', video_id=v['id']) }}" onsubmit="return confirm('Remove this video?');">
+              <button class="btn danger" type="submit" style="margin-top:6px;">Remove</button>
+            </form>
+
+            {% set video_comments = comments_by_video.get(v['id'], []) %}
+            <details class="video-comments" {% if video_comments %}open{% endif %}>
+              <summary>Comments ({{ video_comments | length }})</summary>
+              {% if video_comments %}
+                <div class="comment-list">
+                  {% for c in video_comments %}
+                    <div class="comment">
+                      <div class="comment-meta">{{ c['commenter_name'] }}<span class="comment-time">{{ c['created_at'] | friendly_time }}</span></div>
+                      <div class="comment-body">{{ c['body'] }}</div>
+                      <form method="POST" action="{{ url_for('delete_comment', comment_id=c['id']) }}" onsubmit="return confirm('Delete this comment?');">
+                        <button class="comment-delete" type="submit">Delete</button>
+                      </form>
+                    </div>
+                  {% endfor %}
+                </div>
+              {% endif %}
+              <form class="comment-form" method="POST" action="{{ url_for('add_video_comment', video_id=v['id']) }}">
+                <div class="comment-form-row">
+                  <input type="text" name="commenter_name" placeholder="Your name" required>
+                </div>
+                <textarea name="body" placeholder="What do you see on this clip?" required></textarea>
+                <button class="btn secondary" type="submit">Post Comment</button>
+              </form>
+            </details>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <p>No videos yet for {{ player['name'] }}.</p>
+      <a class="btn" href="{{ url_for('upload_video') }}">Add Video</a>
+    </div>
+  {% endif %}
+
+  <div class="section-title" id="feedback">Player Feedback</div>
+  <div class="feedback-section">
+    {% if general_comments %}
+      <div class="comment-list">
+        {% for c in general_comments %}
+          <div class="comment">
+            <div class="comment-meta">{{ c['commenter_name'] }}<span class="comment-time">{{ c['created_at'] | friendly_time }}</span></div>
+            <div class="comment-body">{{ c['body'] }}</div>
+            <form method="POST" action="{{ url_for('delete_comment', comment_id=c['id']) }}" onsubmit="return confirm('Delete this comment?');">
+              <button class="comment-delete" type="submit">Delete</button>
+            </form>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p style="color:#6b6564; font-size:0.9rem; margin-top:0;">No general feedback yet on {{ player['name'] }}.</p>
+    {% endif %}
+    <form class="comment-form" method="POST" action="{{ url_for('add_player_comment', player_id=player['id']) }}">
+      <div class="comment-form-row">
+        <input type="text" name="commenter_name" placeholder="Your name" required>
+      </div>
+      <textarea name="body" placeholder="Overall thoughts on {{ player['name'] }}'s development" required></textarea>
+      <button class="btn secondary" type="submit">Post Comment</button>
+    </form>
+  </div>
+
+  {% if velocity_by_stat %}
+  <script>
+    // Only velocity stats get a line chart (Bullpen/Pulldown/Game together on
+    // one chart per pitch). Every other stat is rendered server-side above as
+    // a plain grid/table, so this script has nothing to do if there's no
+    // velocity data, and a charting failure can only affect these cards.
+    const velocityByStat = {{ velocity_by_stat | tojson }};
+    const throwingTypeColors = { 'Bullpen': '#8c1d2c', 'Pulldown': '#c9932e', 'Game': '#2c5f8a' };
+
+    // Charting library is loaded from a CDN, and CDNs occasionally get
+    // blocked or rate-limited on school/work networks. Try a couple of
+    // mirrors before giving up so a single bad host doesn't break the page.
+    function loadScript(src) {
+      return new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = src;
+        s.onload = resolve;
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+    }
+
+    const CHART_JS_SOURCES = [
+      'https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js',
+      'https://unpkg.com/chart.js@4.4.4/dist/chart.umd.min.js',
+      'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js',
+    ];
+
+    async function loadChartJs() {
+      for (const src of CHART_JS_SOURCES) {
+        try {
+          await loadScript(src);
+          if (window.Chart) return true;
+        } catch (e) {
+          console.warn('Chart.js failed to load from', src, '- trying next source.');
+        }
+      }
+      console.warn('Chart.js could not be loaded from any source. Velocity charts will be blank.');
+      return false;
+    }
+
+    function drawVelocityChart(canvas) {
+      const statName = canvas.dataset.stat;
+      const byCategory = velocityByStat[statName]; // {category: [{date, value}]}
+      if (!byCategory) return;
+
+      const allDates = Array.from(new Set(
+        Object.values(byCategory).flat().map(p => p.date)
+      )).sort();
+
+      // All three throwing types on one chart, one line each.
+      const datasets = Object.keys(byCategory).sort().map(cat => {
+        const byDate = {};
+        byCategory[cat].forEach(p => { byDate[p.date] = p.value; });
+        return {
+          label: cat,
+          data: allDates.map(d => (d in byDate) ? byDate[d] : null),
+          borderColor: throwingTypeColors[cat] || '#6b6564',
+          backgroundColor: 'transparent',
+          spanGaps: true,
+          tension: 0.25,
+          pointRadius: 3,
+        };
+      });
+
+      try {
+        new Chart(canvas.getContext('2d'), {
+          type: 'line',
+          data: { labels: allDates, datasets: datasets },
+          options: {
+            plugins: { legend: { display: true, position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } },
+            scales: { x: { ticks: { maxRotation: 0, autoSkip: true } } },
+          }
+        });
+      } catch (e) {
+        console.warn('Chart render failed for', statName, e);
+      }
+    }
+
+    loadChartJs().then((chartAvailable) => {
+      if (!chartAvailable) return;
+      document.querySelectorAll('canvas[data-stat]').forEach(drawVelocityChart);
+    });
+  </script>
+  {% endif %}
+{% endblock %}

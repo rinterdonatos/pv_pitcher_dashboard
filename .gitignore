@@ -1,0 +1,26 @@
+# Database (contains real player data)
+pvtracker.db
+*.db
+*.db-journal
+
+# Uploaded videos and photos (real player media, large files)
+static/uploads/videos/*
+static/uploads/photos/*
+!static/uploads/videos/.gitkeep
+!static/uploads/photos/.gitkeep
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Environment / secrets
+.env
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Leftover from repo setup, safe to ignore/delete manually
+.git-broken*/

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Add Player - Paradise Valley Baseball{% endblock %}
+{% block content %}
+  <div class="page-title"><h2>Add Player</h2></div>
+  <form class="card-form" method="POST" enctype="multipart/form-data">
+    <div class="field">
+      <label for="name">Name *</label>
+      <input type="text" id="name" name="name" required>
+    </div>
+    <div class="field">
+      <label for="jersey_number">Jersey Number</label>
+      <input type="text" id="jersey_number" name="jersey_number">
+    </div>
+    <div class="field">
+      <label for="position">Position</label>
+      <input type="text" id="position" name="position" placeholder="e.g. RHP, LHP">
+    </div>
+    <div class="field">
+      <label for="grad_year">Graduation Year</label>
+      <input type="text" id="grad_year" name="grad_year" placeholder="e.g. 2028">
+    </div>
+    <div class="field">
+      <label for="group_number">Group #</label>
+      <input type="text" id="group_number" name="group_number" placeholder="e.g. 1">
+      <div class="hint">Players in the same group # share a throwing calendar.</div>
+    </div>
+    <div class="field">
+      <label for="photo">Photo (optional)</label>
+      <input type="file" id="photo" name="photo" accept="image/*">
+    </div>
+    <div class="field">
+      <label for="notes">Notes</label>
+      <textarea id="notes" name="notes" placeholder="Anything worth remembering about this player"></textarea>
+    </div>
+    <button class="btn" type="submit">Add Player</button>
+  </form>
+{% endblock %}
