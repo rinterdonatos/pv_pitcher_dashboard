@@ -92,9 +92,15 @@
 
   {% if category_tables %}
     {% if velocity_by_stat %}
+      {% set fb_count = namespace(n=0) %}
+      {% for sn in velocity_by_stat.keys() %}{% if 'fb' in sn.lower() or 'fastball' in sn.lower() %}{% set fb_count.n = fb_count.n + 1 %}{% endif %}{% endfor %}
+      {% if fb_count.n > 0 and velocity_by_stat | length > fb_count.n %}
+        <button class="btn secondary" type="button" id="chart-toggle" style="margin-bottom:12px;">Show All Velocity Charts</button>
+      {% endif %}
       <div class="stat-grid" id="velocity-grid">
         {% for stat_name in velocity_by_stat.keys() | sort %}
-          <div class="stat-card">
+          {% set is_fb = 'fb' in stat_name.lower() or 'fastball' in stat_name.lower() %}
+          <div class="stat-card {{ 'fb-chart' if is_fb else 'extra-chart' }}" {% if not is_fb and fb_count.n > 0 %}hidden{% endif %}>
             <h4>{{ stat_name }}</h4>
             <canvas data-stat="{{ stat_name }}" height="110"></canvas>
           </div>
@@ -437,10 +443,38 @@
       }
     }
 
+    // Only the fastball chart shows by default; the rest sit behind the
+    // "Show All Velocity Charts" toggle. Hidden canvases can't be laid out
+    // by Chart.js, so each chart is drawn the first time its card is visible.
+    let chartReady = false;
+    const drawnStats = new Set();
+
+    function drawVisibleCharts() {
+      if (!chartReady) return;
+      document.querySelectorAll('.stat-card:not([hidden]) canvas[data-stat]').forEach(c => {
+        if (!drawnStats.has(c.dataset.stat)) {
+          drawnStats.add(c.dataset.stat);
+          drawVelocityChart(c);
+        }
+      });
+    }
+
     loadChartJs().then((chartAvailable) => {
-      if (!chartAvailable) return;
-      document.querySelectorAll('canvas[data-stat]').forEach(drawVelocityChart);
+      chartReady = chartAvailable;
+      drawVisibleCharts();
     });
+
+    const chartToggle = document.getElementById('chart-toggle');
+    if (chartToggle) {
+      chartToggle.addEventListener('click', () => {
+        const extras = document.querySelectorAll('.stat-card.extra-chart');
+        const showing = chartToggle.dataset.showing === '1';
+        extras.forEach(card => { card.hidden = showing; });
+        chartToggle.dataset.showing = showing ? '' : '1';
+        chartToggle.textContent = showing ? 'Show All Velocity Charts' : 'Show Fastball Only';
+        drawVisibleCharts();
+      });
+    }
   </script>
   {% endif %}
 {% endblock %}
