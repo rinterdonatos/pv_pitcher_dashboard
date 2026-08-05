@@ -16,12 +16,17 @@
     </div>
     <nav>
       <a href="{{ url_for('index') }}">Roster</a>
-      <a href="{{ url_for('groups_list') }}">Throwing Calendars</a>
+      <a href="{{ url_for('lesson_calendar') }}">Calendar</a>
       <a href="{{ url_for('leaderboard') }}">Leaderboard</a>
       <a href="{{ url_for('upload_csv') }}">Import Stats</a>
+      <a href="{{ url_for('upload_trackman') }}">Import TrackMan</a>
       <a href="{{ url_for('upload_video') }}">Add Video</a>
       <a href="{{ url_for('add_player') }}">Add Player</a>
-      <a href="{{ url_for('manage_uploads') }}">Manage Uploads</a>
+      {% if session.get('is_admin') %}
+        <a href="{{ url_for('manage_uploads') }}">Manage Uploads</a>
+        <a href="{{ url_for('users_page') }}">Users</a>
+      {% endif %}
+      <a href="{{ url_for('account') }}">Account</a>
       <form method="POST" action="{{ url_for('logout') }}" style="display:inline;">
         <button type="submit" class="nav-logout">Log Out</button>
       </form>

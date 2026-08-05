@@ -22,8 +22,9 @@
     <div class="field">
       <label for="group_number">Group #</label>
       <input type="text" id="group_number" name="group_number" placeholder="e.g. 1" value="{{ player['group_number'] or '' }}">
-      <div class="hint">Players in the same group # share a throwing calendar.</div>
+      <div class="hint">Players in the same group # share a calendar and can be filtered together on the roster/leaderboard.</div>
     </div>
+    {% with p = player %}{% include "_player_contact_fields.html" %}{% endwith %}
     <div class="field">
       <label for="photo">Photo</label>
       {% if player['photo_filename'] %}

@@ -12,17 +12,22 @@
         <h2 style="margin:0;">{{ player['name'] }}{% if player['jersey_number'] %} #{{ player['jersey_number'] }}{% endif %}</h2>
         <div class="meta">
           {{ player['position'] or 'Position not set' }}{% if player['grad_year'] %} &middot; Class of {{ player['grad_year'] }}{% endif %}
-          {% if player['group_number'] %} &middot; <a href="{{ url_for('group_calendar', group_number=player['group_number']) }}">Group {{ player['group_number'] }} calendar</a>{% endif %}
         </div>
       </div>
     </div>
     <div>
+      {% if player['group_number'] %}
+        <a class="btn secondary" href="{{ url_for('lesson_calendar', group=player['group_number']) }}">Group {{ player['group_number'] }} Calendar</a>
+      {% endif %}
+      <a class="btn secondary" href="{{ url_for('player_report', player_id=player['id']) }}">Printable Report</a>
       <a class="btn secondary" href="{{ url_for('edit_player', player_id=player['id']) }}">Edit Info</a>
-      <a class="btn secondary" href="{{ url_for('upload_video') }}">+ Add Video</a>
       <a class="btn secondary" href="{{ url_for('upload_csv') }}">+ Import Stats</a>
-      <form method="POST" action="{{ url_for('delete_player', player_id=player['id']) }}" style="display:inline;" onsubmit="return confirm('Remove {{ player['name'] }} and all their data?');">
-        <button class="btn danger" type="submit">Remove Player</button>
-      </form>
+      <a class="btn secondary" href="{{ url_for('upload_video') }}">+ Add Video</a>
+      {% if session.get('is_admin') %}
+        <form method="POST" action="{{ url_for('delete_player', player_id=player['id']) }}" style="display:inline;" onsubmit="return confirm('Remove {{ player['name'] }} and all their data?');">
+          <button class="btn danger" type="submit">Remove Player</button>
+        </form>
+      {% endif %}
     </div>
   </div>
 
@@ -30,7 +35,61 @@
     <p style="color:#6b6564;">{{ player['notes'] }}</p>
   {% endif %}
 
+  {% set has_contact = player['phone'] or player['email'] or player['pg_url'] or player['pbr_url'] or contacts %}
+  {% if has_contact %}
+    <div class="section-title">Contact &amp; Profiles</div>
+    <div style="background:#fff; border:1px solid var(--pv-border); border-radius:10px; padding:14px 18px; margin-bottom:20px; display:flex; gap:32px; flex-wrap:wrap;">
+      {% if player['phone'] or player['email'] %}
+        <div>
+          <div style="font-weight:700; margin-bottom:4px;">Player</div>
+          {% if player['phone'] %}<div class="meta"><a href="tel:{{ player['phone'] }}">{{ player['phone'] }}</a></div>{% endif %}
+          {% if player['email'] %}<div class="meta"><a href="mailto:{{ player['email'] }}">{{ player['email'] }}</a></div>{% endif %}
+        </div>
+      {% endif %}
+      {% if player['pg_url'] or player['pbr_url'] %}
+        <div>
+          <div style="font-weight:700; margin-bottom:4px;">Recruiting Profiles</div>
+          {% if player['pg_url'] %}
+            <div class="meta"><a href="{{ player['pg_url'] if player['pg_url'].startswith('http') else 'https://' ~ player['pg_url'] }}" target="_blank" rel="noopener">Perfect Game Profile &nearr;</a></div>
+          {% endif %}
+          {% if player['pbr_url'] %}
+            <div class="meta"><a href="{{ player['pbr_url'] if player['pbr_url'].startswith('http') else 'https://' ~ player['pbr_url'] }}" target="_blank" rel="noopener">PBR Profile &nearr;</a></div>
+          {% endif %}
+        </div>
+      {% endif %}
+      {% for c in contacts %}
+        <div>
+          <div style="font-weight:700; margin-bottom:4px;">{{ c['relationship'] or 'Contact' }}{% if c['name'] %}: {{ c['name'] }}{% endif %}</div>
+          {% if c['phone'] %}<div class="meta"><a href="tel:{{ c['phone'] }}">{{ c['phone'] }}</a></div>{% endif %}
+          {% if c['email'] %}<div class="meta"><a href="mailto:{{ c['email'] }}">{{ c['email'] }}</a></div>{% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
   <div class="section-title">Progress Over Time</div>
+
+  <form method="GET" style="display:flex; gap:10px; align-items:end; flex-wrap:wrap; margin-bottom:14px;">
+    <div class="field" style="margin:0;">
+      <label for="date_from" style="font-size:0.8rem;">From</label>
+      <input type="date" id="date_from" name="date_from" value="{{ date_from }}" onchange="this.form.submit()">
+    </div>
+    <div class="field" style="margin:0;">
+      <label for="date_to" style="font-size:0.8rem;">To</label>
+      <input type="date" id="date_to" name="date_to" value="{{ date_to }}" onchange="this.form.submit()">
+    </div>
+    {% if date_from or date_to %}
+      <a class="btn secondary" href="{{ url_for('player_detail', player_id=player['id']) }}">Show All Data</a>
+    {% endif %}
+    <span class="hint" style="align-self:center;">
+      {% if date_from or date_to %}
+        Showing {{ date_from or 'the beginning' }} through {{ date_to or 'today' }} &mdash; charts, tables, and videos.
+      {% else %}
+        Showing all data. Pick dates to narrow the charts, tables, and videos.
+      {% endif %}
+    </span>
+  </form>
+
   {% if category_tables %}
     {% if velocity_by_stat %}
       <div class="stat-grid" id="velocity-grid">
@@ -61,68 +120,215 @@
               </tr>
             {% endfor %}
             <tr class="avg-row">
-              <td class="spreadsheet-date-col">AVG</td>
+              <td class="spreadsheet-date-col">TOT / AVG</td>
               {% for a in table.averages %}<td>{{ a if a is not none else '' }}</td>{% endfor %}
             </tr>
           </tbody>
         </table>
       </div>
     {% endfor %}
+    <p class="hint" style="margin-top:4px;">
+      Bottom row: counting stats (IP, H, K, BB, Pitches, Strikes, Outs...) are totals; rates (velo, Strike %, ERA, K/7) are averages.
+      IP totals use baseball notation (.1 and .2 are thirds of an inning).
+    </p>
   {% else %}
     <div class="empty-state">
-      <p>No stats yet. Import a CSV to start tracking {{ player['name'] }}'s progress.</p>
-      <a class="btn" href="{{ url_for('upload_csv') }}">Import Stats CSV</a>
+      {% if date_from or date_to %}
+        <p>No stats in this date range.</p>
+        <a class="btn secondary" href="{{ url_for('player_detail', player_id=player['id']) }}">Show All Data</a>
+      {% else %}
+        <p>No stats yet. Import a CSV to start tracking {{ player['name'] }}'s progress.</p>
+        <a class="btn" href="{{ url_for('upload_csv') }}">Import Stats CSV</a>
+      {% endif %}
     </div>
   {% endif %}
 
-  <div class="section-title">Video Timeline</div>
-  {% if videos %}
-    <div class="video-list">
-      {% for v in videos %}
-        <div class="video-item" id="video-{{ v['id'] }}">
-          <video controls preload="metadata" src="{{ url_for('static', filename='uploads/videos/' ~ v['filename']) }}"></video>
-          <div class="info">
-            <span class="date-tag">{{ v['entry_date'] }}</span>
-            <h4>{{ v['title'] }}{% if v['category'] %} <span style="color:#6b6564; font-weight:400;">&middot; {{ v['category'] }}</span>{% endif %}</h4>
-            {% if v['notes'] %}<p>{{ v['notes'] }}</p>{% endif %}
-            <form method="POST" action="{{ url_for('delete_video', video_id=v['id']) }}" onsubmit="return confirm('Remove this video?');">
-              <button class="btn danger" type="submit" style="margin-top:6px;">Remove</button>
-            </form>
+  {% if tm_sessions %}
+    <div class="section-title">TrackMan Reports</div>
+    {% for s in tm_sessions %}
+      <details style="background:#fff; border:1px solid var(--pv-border); border-radius:10px; padding:12px 16px; margin-bottom:10px;" {% if loop.first %}open{% endif %}>
+        <summary style="cursor:pointer; font-weight:700;">
+          {{ s.date }} &mdash; {{ s.category }} &middot; {{ s.pitch_count }} pitches, {{ s.strikes }} strikes
+          ({{ ((s.strikes / s.pitch_count) * 100) | round(1) }}%)
+        </summary>
 
-            {% set video_comments = comments_by_video.get(v['id'], []) %}
-            <details class="video-comments" {% if video_comments %}open{% endif %}>
-              <summary>Comments ({{ video_comments | length }})</summary>
-              {% if video_comments %}
-                <div class="comment-list">
-                  {% for c in video_comments %}
-                    <div class="comment">
-                      <div class="comment-meta">{{ c['commenter_name'] }}<span class="comment-time">{{ c['created_at'] | friendly_time }}</span></div>
-                      <div class="comment-body">{{ c['body'] }}</div>
-                      <form method="POST" action="{{ url_for('delete_comment', comment_id=c['id']) }}" onsubmit="return confirm('Delete this comment?');">
-                        <button class="comment-delete" type="submit">Delete</button>
-                      </form>
-                    </div>
-                  {% endfor %}
-                </div>
-              {% endif %}
-              <form class="comment-form" method="POST" action="{{ url_for('add_video_comment', video_id=v['id']) }}">
-                <div class="comment-form-row">
-                  <input type="text" name="commenter_name" placeholder="Your name" required>
-                </div>
-                <textarea name="body" placeholder="What do you see on this clip?" required></textarea>
-                <button class="btn secondary" type="submit">Post Comment</button>
-              </form>
-            </details>
+        <div class="spreadsheet-wrap" style="margin-top:10px;">
+          <table class="spreadsheet-table">
+            <thead>
+              <tr>
+                <th class="spreadsheet-date-col">Pitch</th><th>#</th><th>Max Velo</th><th>Avg Velo</th>
+                <th>Avg Spin</th><th>Tilt</th><th>IVB</th><th>HB</th>
+                <th>Ext</th><th>Rel H</th><th>Rel S</th><th>VAA</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for t in s.types %}
+                <tr>
+                  <td class="spreadsheet-date-col">{{ t.type }}</td>
+                  <td>{{ t.count }}</td>
+                  <td>{{ t.max_velo if t.max_velo is not none else '' }}</td>
+                  <td>{{ t.avg_velo if t.avg_velo is not none else '' }}</td>
+                  <td>{{ t.avg_spin | int if t.avg_spin is not none else '' }}</td>
+                  <td>{{ t.tilt or '' }}</td>
+                  <td>{{ t.ivb if t.ivb is not none else '' }}</td>
+                  <td>{{ t.hb if t.hb is not none else '' }}</td>
+                  <td>{{ t.ext if t.ext is not none else '' }}</td>
+                  <td>{{ t.rel_h if t.rel_h is not none else '' }}</td>
+                  <td>{{ t.rel_s if t.rel_s is not none else '' }}</td>
+                  <td>{{ t.vaa if t.vaa is not none else '' }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <details style="margin-top:8px;">
+          <summary style="cursor:pointer; font-size:0.85em; color:#888;">Pitch-by-pitch ({{ s.pitch_count }})</summary>
+          <div class="spreadsheet-wrap" style="margin-top:8px;">
+            <table class="spreadsheet-table">
+              <thead>
+                <tr>
+                  <th class="spreadsheet-date-col">#</th><th>Type</th><th>Result</th><th>Velo</th><th>Spin</th><th>Tilt</th>
+                  <th>IVB</th><th>HB</th><th>Ext</th><th>VAA</th><th>Loc H</th><th>Loc S</th><th>Exit Velo</th><th>LA</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for p in s.pitches %}
+                  <tr>
+                    <td class="spreadsheet-date-col">{{ p['pitch_no'] if p['pitch_no'] is not none else loop.index }}</td>
+                    <td>{{ p['pitch_type'] or '' }}</td>
+                    <td>{{ (p['pitch_call'] or '') | spaced }}</td>
+                    <td>{{ p['rel_speed'] | round(1) if p['rel_speed'] is not none else '' }}</td>
+                    <td>{{ p['spin_rate'] | int if p['spin_rate'] is not none else '' }}</td>
+                    <td>{{ p['spin_axis'] or '' }}</td>
+                    <td>{{ p['ivb'] | round(1) if p['ivb'] is not none else '' }}</td>
+                    <td>{{ p['hb'] | round(1) if p['hb'] is not none else '' }}</td>
+                    <td>{{ p['extension'] | round(1) if p['extension'] is not none else '' }}</td>
+                    <td>{{ p['vaa'] | round(1) if p['vaa'] is not none else '' }}</td>
+                    <td>{{ p['loc_height'] | round(2) if p['loc_height'] is not none else '' }}</td>
+                    <td>{{ p['loc_side'] | round(2) if p['loc_side'] is not none else '' }}</td>
+                    <td>{{ p['exit_speed'] | round(1) if p['exit_speed'] is not none else '' }}</td>
+                    <td>{{ p['launch_angle'] | round(1) if p['launch_angle'] is not none else '' }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
           </div>
+        </details>
+      </details>
+    {% endfor %}
+    <p class="hint" style="margin-top:4px;">
+      IVB = induced vertical break, HB = horizontal break, Ext = extension, Rel H/S = release height/side,
+      VAA = vertical approach angle, Loc H/S = plate location, LA = launch angle. Averages per pitch type; tilt is the most common reading.
+    </p>
+  {% endif %}
+
+  <div class="section-title">Video Timeline</div>
+  {% if video_groups %}
+    <div class="video-list">
+      {% for group in video_groups %}
+        <div class="video-item video-group">
+          {% if group.videos | length > 1 %}
+            <div class="video-group-nav">
+              <button type="button" class="video-nav-btn" data-nav="prev" aria-label="Previous video">&larr;</button>
+              <span class="video-nav-count"><span class="video-nav-current">1</span> / {{ group.videos | length }} clips &mdash; {{ group.date }}</span>
+              <button type="button" class="video-nav-btn" data-nav="next" aria-label="Next video">&rarr;</button>
+            </div>
+          {% endif %}
+          {% for v in group.videos %}
+            <div class="video-slide" id="video-{{ v['id'] }}" {% if not loop.first %}style="display:none;"{% endif %}>
+              <video controls preload="metadata" src="{{ url_for('static', filename='uploads/videos/' ~ v['filename']) }}"></video>
+              <div class="info">
+                <span class="date-tag">{{ v['entry_date'] }}</span>
+                <h4>{{ v['title'] }}{% if v['category'] %} <span style="color:#6b6564; font-weight:400;">&middot; {{ v['category'] }}</span>{% endif %}</h4>
+                {% if v['notes'] %}<p>{{ v['notes'] }}</p>{% endif %}
+                {% if session.get('is_admin') %}
+                  <form method="POST" action="{{ url_for('delete_video', video_id=v['id']) }}" onsubmit="return confirm('Remove this video?');">
+                    <button class="btn danger" type="submit" style="margin-top:6px;">Remove</button>
+                  </form>
+                {% endif %}
+
+                {% set video_comments = comments_by_video.get(v['id'], []) %}
+                <details class="video-comments" {% if video_comments %}open{% endif %}>
+                  <summary>Comments ({{ video_comments | length }})</summary>
+                  {% if video_comments %}
+                    <div class="comment-list">
+                      {% for c in video_comments %}
+                        <div class="comment">
+                          <div class="comment-meta">{{ c['commenter_name'] }}<span class="comment-time">{{ c['created_at'] | friendly_time }}</span></div>
+                          <div class="comment-body">{{ c['body'] }}</div>
+                          {% if session.get('is_admin') %}
+                            <form method="POST" action="{{ url_for('delete_comment', comment_id=c['id']) }}" onsubmit="return confirm('Delete this comment?');">
+                              <button class="comment-delete" type="submit">Delete</button>
+                            </form>
+                          {% endif %}
+                        </div>
+                      {% endfor %}
+                    </div>
+                  {% endif %}
+                  <form class="comment-form" method="POST" action="{{ url_for('add_video_comment', video_id=v['id']) }}">
+                    <div class="comment-form-row">
+                      <input type="text" name="commenter_name" placeholder="Your name" required>
+                    </div>
+                    <textarea name="body" placeholder="What do you see on this clip?" required></textarea>
+                    <button class="btn secondary" type="submit">Post Comment</button>
+                  </form>
+                </details>
+              </div>
+            </div>
+          {% endfor %}
         </div>
       {% endfor %}
     </div>
   {% else %}
     <div class="empty-state">
-      <p>No videos yet for {{ player['name'] }}.</p>
-      <a class="btn" href="{{ url_for('upload_video') }}">Add Video</a>
+      {% if date_from or date_to %}
+        <p>No videos in this date range.</p>
+        <a class="btn secondary" href="{{ url_for('player_detail', player_id=player['id']) }}">Show All Data</a>
+      {% else %}
+        <p>No videos yet for {{ player['name'] }}.</p>
+        <a class="btn" href="{{ url_for('upload_video') }}">Add Video</a>
+      {% endif %}
     </div>
   {% endif %}
+
+  <script>
+    // Same-day videos are grouped into one timeline card with Prev/Next
+    // controls instead of one card per clip.
+    document.querySelectorAll('.video-group').forEach(function (group) {
+      var slides = Array.prototype.slice.call(group.querySelectorAll('.video-slide'));
+      if (slides.length < 2) return;
+
+      var idx = Math.max(0, slides.findIndex(function (s) { return s.style.display !== 'none'; }));
+      var counter = group.querySelector('.video-nav-current');
+
+      function show(newIdx) {
+        var current = slides[idx].querySelector('video');
+        if (current) current.pause();
+        slides[idx].style.display = 'none';
+        idx = (newIdx + slides.length) % slides.length;
+        slides[idx].style.display = '';
+        if (counter) counter.textContent = idx + 1;
+      }
+
+      var prevBtn = group.querySelector('[data-nav="prev"]');
+      var nextBtn = group.querySelector('[data-nav="next"]');
+      if (prevBtn) prevBtn.addEventListener('click', function () { show(idx - 1); });
+      if (nextBtn) nextBtn.addEventListener('click', function () { show(idx + 1); });
+
+      // If the page links straight to one clip in this group (e.g. after
+      // posting a comment redirects back to #video-<id>), jump to it.
+      if (window.location.hash) {
+        var targetIdx = slides.findIndex(function (s) { return '#' + s.id === window.location.hash; });
+        if (targetIdx !== -1 && targetIdx !== idx) show(targetIdx);
+      }
+    });
+
+    if (window.location.hash) {
+      var target = document.querySelector(window.location.hash);
+      if (target) target.scrollIntoView({ block: 'center' });
+    }
+  </script>
 
   <div class="section-title" id="feedback">Player Feedback</div>
   <div class="feedback-section">
@@ -132,9 +338,11 @@
           <div class="comment">
             <div class="comment-meta">{{ c['commenter_name'] }}<span class="comment-time">{{ c['created_at'] | friendly_time }}</span></div>
             <div class="comment-body">{{ c['body'] }}</div>
-            <form method="POST" action="{{ url_for('delete_comment', comment_id=c['id']) }}" onsubmit="return confirm('Delete this comment?');">
-              <button class="comment-delete" type="submit">Delete</button>
-            </form>
+            {% if session.get('is_admin') %}
+              <form method="POST" action="{{ url_for('delete_comment', comment_id=c['id']) }}" onsubmit="return confirm('Delete this comment?');">
+                <button class="comment-delete" type="submit">Delete</button>
+              </form>
+            {% endif %}
           </div>
         {% endfor %}
       </div>

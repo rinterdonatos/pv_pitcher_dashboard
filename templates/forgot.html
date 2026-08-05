@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sign In - Paradise Valley Baseball</title>
+  <title>Reset Password - Paradise Valley Baseball</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
   <link rel="icon" href="{{ url_for('static', filename='img/pv-logo.png') }}">
 </head>
@@ -11,8 +11,8 @@
   <div class="login-wrap">
     <div class="login-card">
       <img src="{{ url_for('static', filename='img/pv-logo.png') }}" alt="Paradise Valley logo" class="login-logo">
-      <h1>Paradise Valley Baseball</h1>
-      <p class="login-sub">Player Progress Tracker</p>
+      <h1>Reset Password</h1>
+      <p class="login-sub">Enter the email or phone number on your account and we'll send you a 6-digit code.</p>
 
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
@@ -23,19 +23,13 @@
       {% endwith %}
 
       <form method="POST">
-        <input type="hidden" name="next" value="{{ next }}">
         <div class="field">
           <label for="identifier">Email or phone number</label>
           <input type="text" id="identifier" name="identifier" autocomplete="username" autofocus required>
         </div>
-        <div class="field">
-          <label for="password">Password</label>
-          <input type="password" id="password" name="password" autocomplete="current-password">
-          <div class="hint">First time here? Enter your email or phone and leave this blank &mdash; you'll create your password next.</div>
-        </div>
-        <button class="btn" type="submit" style="width:100%;">Sign In</button>
+        <button class="btn" type="submit" style="width:100%;">Send Code</button>
       </form>
-      <p style="margin-top:14px; font-size:0.85rem;"><a href="{{ url_for('forgot_password') }}">Forgot your password?</a></p>
+      <p style="margin-top:14px; font-size:0.85rem;"><a href="{{ url_for('login') }}">Back to sign in</a></p>
     </div>
   </div>
 </body>

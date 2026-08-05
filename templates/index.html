@@ -10,6 +10,22 @@
     </div>
   </div>
 
+  <form method="GET" action="{{ url_for('index') }}" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:18px;">
+    <input type="text" name="q" id="player-search" value="{{ q }}" autocomplete="off"
+           placeholder="Search players, group, or grad year (e.g. 2027 or Group 2)"
+           style="flex:1; min-width:220px; padding:9px 12px; border:1px solid var(--pv-border); border-radius:8px;">
+    <select name="group" onchange="this.form.submit()" style="padding:9px 12px; border:1px solid var(--pv-border); border-radius:8px;">
+      <option value="">All groups</option>
+      {% for g in groups %}
+        <option value="{{ g }}" {% if group_filter == g %}selected{% endif %}>Group {{ g }}</option>
+      {% endfor %}
+      <option value="none" {% if group_filter == 'none' %}selected{% endif %}>No group</option>
+    </select>
+    {% if q or group_filter %}
+      <a class="btn secondary" href="{{ url_for('index') }}">Clear</a>
+    {% endif %}
+  </form>
+
   {% if players %}
     <div class="roster-grid">
       {% for p in players %}
@@ -31,10 +47,40 @@
         </a>
       {% endfor %}
     </div>
+  {% elif q or group_filter %}
+    <div class="empty-state">
+      <p>No players match that search.</p>
+      <a class="btn secondary" href="{{ url_for('index') }}">Clear search</a>
+    </div>
   {% else %}
     <div class="empty-state">
       <p>No players yet. Add your first player to start tracking progress.</p>
       <a class="btn" href="{{ url_for('add_player') }}">+ Add Player</a>
     </div>
   {% endif %}
+
+  <div class="empty-state" id="live-no-match" hidden>
+    <p>No players match that search.</p>
+  </div>
+
+  <script>
+    // Search-as-you-type: filter the player cards instantly on each keystroke.
+    // Pressing Enter still submits for a server-side search, which is what
+    // the URL/bookmarks use.
+    const searchBox = document.getElementById('player-search');
+    const cards = Array.from(document.querySelectorAll('.player-card'));
+    const noMatch = document.getElementById('live-no-match');
+    if (searchBox) {
+      searchBox.addEventListener('input', () => {
+        const q = searchBox.value.trim().toLowerCase();
+        let visible = 0;
+        cards.forEach(card => {
+          const hit = !q || card.textContent.toLowerCase().includes(q);
+          card.style.display = hit ? '' : 'none';
+          if (hit) visible++;
+        });
+        noMatch.hidden = visible > 0 || cards.length === 0;
+      });
+    }
+  </script>
 {% endblock %}

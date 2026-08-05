@@ -380,6 +380,9 @@ table.spreadsheet-table tr.avg-row td.spreadsheet-date-col {
   border: 1px solid var(--pv-border);
   border-radius: 12px;
   padding: 16px;
+}
+
+.video-slide {
   display: grid;
   grid-template-columns: 260px 1fr;
   gap: 16px;
@@ -404,8 +407,36 @@ table.spreadsheet-table tr.avg-row td.spreadsheet-date-col {
 }
 .video-item .info p { color: var(--pv-gray); font-size: 0.9rem; margin: 6px 0; }
 
+.video-group-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--pv-border);
+}
+
+.video-nav-btn {
+  background: var(--pv-cream);
+  border: 1px solid var(--pv-border);
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  font-size: 1rem;
+  color: var(--pv-maroon-dark);
+}
+.video-nav-btn:hover { background: var(--pv-maroon); color: var(--pv-white); }
+
+.video-nav-count {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--pv-gray);
+}
+
 @media (max-width: 640px) {
-  .video-item { grid-template-columns: 1fr; }
+  .video-slide { grid-template-columns: 1fr; }
 }
 
 .roster-table-btn { margin-bottom: 20px; }
@@ -644,6 +675,8 @@ table.csv-preview th, table.csv-preview td {
   flex-direction: column;
   gap: 4px;
 }
+
+.calendar-day.clickable { cursor: pointer; }
 
 .calendar-day.other-month {
   background: var(--pv-cream);
