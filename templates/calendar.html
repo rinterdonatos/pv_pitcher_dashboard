@@ -5,14 +5,19 @@
     <h2>Calendar{% if current_group %} &mdash; Group {{ current_group }}{% endif %}</h2>
   </div>
 
-  <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px;">
+  <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-bottom:16px;">
     <a class="btn {% if not current_group %}{% else %}secondary{% endif %}"
        href="{{ url_for('lesson_calendar', year=year, month=month) }}">General</a>
     {% for g in groups %}
       <a class="btn {% if current_group == g %}{% else %}secondary{% endif %}"
          href="{{ url_for('lesson_calendar', year=year, month=month, group=g) }}">Group {{ g }}</a>
     {% endfor %}
+    <form method="GET" action="" onsubmit="event.preventDefault(); var v=document.getElementById('jump_group').value.trim(); if(v){ window.location.href = '{{ url_for('lesson_calendar') }}?group=' + encodeURIComponent(v); }" style="display:flex; gap:6px; margin-left:6px;">
+      <input type="text" id="jump_group" placeholder="New group # (e.g. 3)" style="padding:8px 10px; border:1px solid var(--pv-border); border-radius:7px; font-size:0.85rem; width:150px;">
+      <button class="btn secondary" type="submit" style="font-size:0.85rem; padding:8px 12px;">+ Start Group</button>
+    </form>
   </div>
+  <p class="hint" style="margin:-10px 0 16px;">Starting a group here makes it available on the roster filter and leaderboard too, even before any player is assigned to it.</p>
 
   <div class="calendar-nav">
     <a class="btn secondary" href="{{ url_for('lesson_calendar', year=prev_year, month=prev_month, group=current_group) }}">&larr; Prev</a>

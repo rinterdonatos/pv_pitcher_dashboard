@@ -1107,9 +1107,15 @@ def leaderboard():
 # ---------- Routes: player roster ----------
 
 def _all_groups(conn):
-    """Every distinct group # currently in use, for filter dropdowns."""
+    """Every distinct group # currently in use, for filter dropdowns/buttons.
+    Pulled from both players (assigned to that group) and calendar entries
+    (a group started on the Calendar page before any player is assigned to
+    it yet), so a brand-new group # shows up right away either way."""
     rows = conn.execute(
-        """SELECT DISTINCT group_number FROM players
+        """SELECT group_number FROM players
+           WHERE group_number IS NOT NULL AND TRIM(group_number) != ''
+           UNION
+           SELECT group_number FROM throwing_entries
            WHERE group_number IS NOT NULL AND TRIM(group_number) != ''
            ORDER BY group_number COLLATE NOCASE ASC"""
     ).fetchall()
